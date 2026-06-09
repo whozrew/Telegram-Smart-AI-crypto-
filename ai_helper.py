@@ -1,5 +1,5 @@
 import re
-from typing import Dict, str
+from typing import Dict
 
 # Mahalliy mukammal offline bilimlar bazasi
 KNOWLEDGE_BASE = {
