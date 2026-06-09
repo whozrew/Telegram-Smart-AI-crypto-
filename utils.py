@@ -57,7 +57,7 @@ def calculate_indicators(df: pd.DataFrame) -> pd.DataFrame:
 
     return df
 
-def detect_smc_and_advanced(df: pd.DataFrame) -> Dict[str, Any] Cast:
+def detect_smc_and_advanced(df: pd.DataFrame) -> Dict[str, Any]:
     """Smart Money Concepts va Murakkab Price Action tuzilmalarini aniqlash"""
     last_idx = df.index[-1]
     prev_idx = df.index[-2]
