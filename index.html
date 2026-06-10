@@ -1,0 +1,1263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Halol Crypto AI</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <style>
+    /* ── Design tokens ───────────────────────────────────────────────── */
+    :root {
+      --bg-primary:    #0a0e1a;
+      --bg-card:       #111827;
+      --bg-card-hover: #1a2435;
+      --bg-input:      #1e2a3a;
+      --accent:        #22d3a5;     /* Halal teal — distinctive, not the usual yellow */
+      --accent-soft:   rgba(34, 211, 165, 0.12);
+      --accent-glow:   rgba(34, 211, 165, 0.35);
+      --gold:          #f59e0b;
+      --red-signal:    #ef4444;
+      --yellow-signal: #eab308;
+      --text-primary:  #f1f5f9;
+      --text-secondary:#94a3b8;
+      --text-muted:    #475569;
+      --border:        rgba(255,255,255,0.06);
+      --border-accent: rgba(34,211,165,0.25);
+      --font-display:  'SF Pro Display', -apple-system, 'Segoe UI', system-ui, sans-serif;
+      --font-mono:     'SF Mono', 'Fira Code', monospace;
+      --radius-sm:     8px;
+      --radius-md:     14px;
+      --radius-lg:     20px;
+      --shadow-card:   0 4px 24px rgba(0,0,0,0.4);
+    }
+
+    /* ── Reset ────────────────────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      height: 100%;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      font-family: var(--font-display);
+      font-size: 15px;
+      -webkit-font-smoothing: antialiased;
+      overflow: hidden;
+    }
+    button { cursor: pointer; border: none; outline: none; font-family: inherit; }
+    input  { font-family: inherit; outline: none; border: none; }
+
+    /* ── App Shell ────────────────────────────────────────────────────── */
+    #app {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      max-width: 480px;
+      margin: 0 auto;
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* ── Header ──────────────────────────────────────────────────────── */
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 18px 10px;
+      background: linear-gradient(180deg, rgba(10,14,26,0.98) 0%, transparent 100%);
+      position: relative;
+      z-index: 10;
+      flex-shrink: 0;
+    }
+    .header-logo {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+    }
+    .header-logo .logo-mark {
+      width: 34px; height: 34px;
+      background: linear-gradient(135deg, var(--accent) 0%, #0891b2 100%);
+      border-radius: 10px;
+      display: grid;
+      place-items: center;
+      font-size: 18px;
+      font-weight: 900;
+      color: var(--bg-primary);
+      letter-spacing: -1px;
+    }
+    .header-title {
+      font-size: 16px;
+      font-weight: 700;
+      letter-spacing: -0.3px;
+    }
+    .header-title span {
+      color: var(--accent);
+    }
+    .header-badge {
+      font-size: 10px;
+      background: var(--accent-soft);
+      color: var(--accent);
+      border: 1px solid var(--border-accent);
+      padding: 2px 7px;
+      border-radius: 20px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+
+    /* ── Scroll area ─────────────────────────────────────────────────── */
+    .scroll-area {
+      flex: 1;
+      overflow-y: auto;
+      overflow-x: hidden;
+      padding: 0 14px 80px;
+      -webkit-overflow-scrolling: touch;
+      scroll-behavior: smooth;
+    }
+    .scroll-area::-webkit-scrollbar { display: none; }
+
+    /* ── Pages ───────────────────────────────────────────────────────── */
+    .page { display: none; animation: fadeUp 0.22s ease; }
+    .page.active { display: block; }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(10px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ── Section headers ─────────────────────────────────────────────── */
+    .section-label {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1.2px;
+      color: var(--text-muted);
+      padding: 18px 0 8px;
+    }
+
+    /* ── Cards ───────────────────────────────────────────────────────── */
+    .card {
+      background: var(--bg-card);
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border);
+      padding: 16px;
+      margin-bottom: 10px;
+      transition: border-color 0.15s, background 0.15s;
+    }
+    .card:active { background: var(--bg-card-hover); }
+    .card-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .card-label { font-size: 12px; color: var(--text-secondary); font-weight: 500; }
+    .card-value { font-size: 15px; font-weight: 700; }
+
+    /* ── Coin card ────────────────────────────────────────────────────── */
+    .coin-card {
+      display: flex;
+      align-items: center;
+      gap: 13px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 14px 16px;
+      margin-bottom: 8px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .coin-card:active { background: var(--bg-card-hover); border-color: var(--border-accent); }
+    .coin-icon {
+      width: 42px; height: 42px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--accent-soft), rgba(14,165,233,0.15));
+      display: grid;
+      place-items: center;
+      font-size: 13px;
+      font-weight: 800;
+      color: var(--accent);
+      border: 1px solid var(--border-accent);
+      flex-shrink: 0;
+    }
+    .coin-info { flex: 1; min-width: 0; }
+    .coin-name { font-weight: 700; font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .coin-sub  { font-size: 12px; color: var(--text-secondary); }
+    .coin-price-block { text-align: right; }
+    .coin-price { font-size: 15px; font-weight: 700; font-family: var(--font-mono); }
+    .coin-change { font-size: 12px; font-weight: 600; }
+    .up   { color: var(--accent); }
+    .down { color: var(--red-signal); }
+    .flat { color: var(--text-secondary); }
+
+    /* ── Signal badge ─────────────────────────────────────────────────── */
+    .signal-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 5px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.3px;
+    }
+    .signal-strong-buy { background: rgba(34,211,165,0.15); color: var(--accent); border: 1px solid var(--border-accent); }
+    .signal-buy        { background: rgba(34,211,165,0.08); color: #6ee7b7; border: 1px solid rgba(34,211,165,0.2); }
+    .signal-wait       { background: rgba(234,179,8,0.1);   color: var(--gold); border: 1px solid rgba(234,179,8,0.25); }
+    .signal-profit     { background: rgba(239,68,68,0.1);   color: #fca5a5; border: 1px solid rgba(239,68,68,0.2); }
+
+    /* ── Score ring ───────────────────────────────────────────────────── */
+    .score-container {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px 0 10px;
+    }
+    .score-ring {
+      position: relative;
+      width: 110px; height: 110px;
+    }
+    .score-ring svg { transform: rotate(-90deg); }
+    .score-ring circle.bg { fill: none; stroke: var(--bg-input); stroke-width: 8; }
+    .score-ring circle.fg {
+      fill: none;
+      stroke: var(--accent);
+      stroke-width: 8;
+      stroke-linecap: round;
+      transition: stroke-dashoffset 0.8s ease;
+    }
+    .score-text {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+    .score-number { font-size: 26px; font-weight: 800; font-family: var(--font-mono); color: var(--accent); }
+    .score-label  { font-size: 9px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; }
+
+    /* ── Trade plan ───────────────────────────────────────────────────── */
+    .trade-plan {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      margin-bottom: 10px;
+    }
+    .trade-plan-header {
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
+      font-weight: 700;
+      font-size: 13px;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+    }
+    .tp-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 16px;
+      border-bottom: 1px solid var(--border);
+    }
+    .tp-row:last-child { border-bottom: none; }
+    .tp-label { font-size: 12px; color: var(--text-secondary); }
+    .tp-value { font-size: 13px; font-weight: 700; font-family: var(--font-mono); }
+    .tp-entry { color: var(--text-primary); }
+    .tp-sl    { color: var(--red-signal); }
+    .tp-1     { color: #86efac; }
+    .tp-2     { color: #4ade80; }
+    .tp-3     { color: var(--accent); }
+    .tp-rr    { color: var(--gold); }
+
+    /* ── Indicator pills ─────────────────────────────────────────────── */
+    .indicators-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+    .indicator-pill {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 10px 12px;
+    }
+    .indicator-pill .ind-label { font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.8px; font-weight: 600; }
+    .indicator-pill .ind-value { font-size: 16px; font-weight: 800; font-family: var(--font-mono); margin-top: 2px; }
+
+    /* ── SMC badges ─────────────────────────────────────────────────── */
+    .smc-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 10px;
+    }
+    .smc-tag {
+      font-size: 11px;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 20px;
+      background: var(--accent-soft);
+      color: var(--accent);
+      border: 1px solid var(--border-accent);
+    }
+
+    /* ── Search bar ───────────────────────────────────────────────────── */
+    .search-bar {
+      background: var(--bg-input);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 14px;
+      margin-bottom: 12px;
+    }
+    .search-bar span { color: var(--text-muted); font-size: 16px; }
+    .search-bar input {
+      flex: 1;
+      background: none;
+      color: var(--text-primary);
+      font-size: 14px;
+    }
+    .search-bar input::placeholder { color: var(--text-muted); }
+
+    /* ── Timeframe tabs ───────────────────────────────────────────────── */
+    .tf-tabs {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 14px;
+    }
+    .tf-tab {
+      flex: 1;
+      padding: 8px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--text-secondary);
+      font-size: 12px;
+      font-weight: 700;
+      text-align: center;
+      transition: all 0.15s;
+    }
+    .tf-tab.active {
+      background: var(--accent-soft);
+      border-color: var(--border-accent);
+      color: var(--accent);
+    }
+
+    /* ── Coin grid ───────────────────────────────────────────────────── */
+    .coin-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+    .coin-grid-item {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 14px 12px;
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.15s;
+    }
+    .coin-grid-item:active { background: var(--bg-card-hover); border-color: var(--border-accent); }
+    .coin-grid-sym { font-size: 16px; font-weight: 800; color: var(--accent); }
+    .coin-grid-name { font-size: 10px; color: var(--text-muted); margin-top: 2px; }
+
+    /* ── Academy ─────────────────────────────────────────────────────── */
+    .academy-cat {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 16px;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      cursor: pointer;
+    }
+    .academy-cat:active { background: var(--bg-card-hover); }
+    .academy-cat-icon {
+      width: 44px; height: 44px;
+      background: var(--accent-soft);
+      border-radius: var(--radius-sm);
+      display: grid;
+      place-items: center;
+      font-size: 22px;
+      flex-shrink: 0;
+    }
+    .academy-cat-title { font-weight: 700; font-size: 15px; }
+    .academy-cat-sub   { font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
+
+    /* ── Lesson content ──────────────────────────────────────────────── */
+    .lesson-content {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 18px;
+      line-height: 1.7;
+      font-size: 14px;
+      color: var(--text-primary);
+    }
+    .lesson-content b { color: var(--accent); font-weight: 700; }
+    .lesson-content .lesson-title { font-size: 18px; font-weight: 800; margin-bottom: 14px; color: var(--text-primary); }
+
+    /* ── Bottom nav ───────────────────────────────────────────────────── */
+    .bottom-nav {
+      position: fixed;
+      bottom: 0; left: 50%; transform: translateX(-50%);
+      width: 100%; max-width: 480px;
+      background: rgba(10,14,26,0.96);
+      backdrop-filter: blur(12px);
+      border-top: 1px solid var(--border);
+      display: flex;
+      z-index: 100;
+      padding-bottom: env(safe-area-inset-bottom);
+    }
+    .nav-item {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 10px 6px;
+      gap: 4px;
+      cursor: pointer;
+      transition: all 0.15s;
+      background: none;
+      color: var(--text-muted);
+    }
+    .nav-item.active { color: var(--accent); }
+    .nav-icon { font-size: 20px; line-height: 1; }
+    .nav-label { font-size: 9px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+
+    /* ── Loading ─────────────────────────────────────────────────────── */
+    .loading-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 60px 20px;
+      gap: 16px;
+      color: var(--text-secondary);
+      font-size: 14px;
+    }
+    .spinner {
+      width: 32px; height: 32px;
+      border: 3px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Sentiment bar ───────────────────────────────────────────────── */
+    .sentiment-bar {
+      height: 6px;
+      border-radius: 3px;
+      background: linear-gradient(90deg, var(--red-signal) 0%, var(--gold) 50%, var(--accent) 100%);
+      margin: 8px 0;
+      position: relative;
+    }
+    .sentiment-bar::after {
+      content: '';
+      position: absolute;
+      top: -3px;
+      width: 12px; height: 12px;
+      background: white;
+      border-radius: 50%;
+      transform: translateX(-50%);
+      box-shadow: 0 0 6px rgba(0,0,0,0.5);
+      transition: left 0.5s ease;
+    }
+
+    /* ── Watchlist page ──────────────────────────────────────────────── */
+    .empty-state {
+      text-align: center;
+      padding: 50px 20px;
+      color: var(--text-secondary);
+    }
+    .empty-icon { font-size: 48px; margin-bottom: 12px; }
+    .empty-title { font-size: 17px; font-weight: 700; color: var(--text-primary); }
+    .empty-sub { font-size: 13px; margin-top: 6px; }
+
+    /* ── Buttons ─────────────────────────────────────────────────────── */
+    .btn-primary {
+      width: 100%;
+      padding: 14px;
+      background: var(--accent);
+      color: var(--bg-primary);
+      border-radius: var(--radius-sm);
+      font-size: 15px;
+      font-weight: 800;
+      letter-spacing: 0.3px;
+      margin-top: 8px;
+      transition: opacity 0.15s;
+    }
+    .btn-primary:active { opacity: 0.85; }
+    .btn-secondary {
+      width: 100%;
+      padding: 12px;
+      background: var(--bg-input);
+      color: var(--text-primary);
+      border-radius: var(--radius-sm);
+      font-size: 14px;
+      font-weight: 700;
+      margin-top: 6px;
+      border: 1px solid var(--border);
+    }
+
+    /* ── Overview tiles ──────────────────────────────────────────────── */
+    .overview-tiles {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+    .overview-tile {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 14px;
+    }
+    .overview-tile .ot-label { font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.8px; font-weight: 600; }
+    .overview-tile .ot-value { font-size: 20px; font-weight: 800; margin-top: 4px; }
+
+    /* ── Settings ────────────────────────────────────────────────────── */
+    .setting-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      margin-bottom: 8px;
+    }
+    .setting-label { font-size: 14px; font-weight: 600; }
+    .setting-sub   { font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
+    .toggle {
+      width: 44px; height: 26px;
+      background: var(--bg-input);
+      border-radius: 13px;
+      position: relative;
+      transition: background 0.2s;
+      border: 1px solid var(--border);
+    }
+    .toggle.on { background: var(--accent); border-color: var(--accent); }
+    .toggle::after {
+      content: '';
+      position: absolute;
+      width: 18px; height: 18px;
+      background: white;
+      border-radius: 50%;
+      top: 3px; left: 3px;
+      transition: transform 0.2s;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+    }
+    .toggle.on::after { transform: translateX(18px); }
+
+    /* ── Signal detail page ──────────────────────────────────────────── */
+    .signal-hero {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 20px 16px 16px;
+      margin-bottom: 10px;
+    }
+    .signal-hero-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      margin-bottom: 8px;
+    }
+    .signal-hero-sym { font-size: 26px; font-weight: 900; }
+    .signal-hero-price { font-size: 22px; font-weight: 800; font-family: var(--font-mono); }
+    .signal-meta {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 12px;
+    }
+    .meta-pill {
+      background: var(--bg-input);
+      border-radius: 20px;
+      padding: 4px 10px;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-secondary);
+    }
+    .meta-pill.accent { color: var(--accent); background: var(--accent-soft); }
+  </style>
+</head>
+<body>
+<div id="app">
+  <!-- Header -->
+  <div class="header">
+    <div class="header-logo">
+      <div class="logo-mark">H</div>
+      <div class="header-title">Halol <span>Crypto</span> AI</div>
+    </div>
+    <div class="header-badge">Halal Spot</div>
+  </div>
+
+  <!-- Scroll Area with Pages -->
+  <div class="scroll-area">
+
+    <!-- ─── Home Page ─────────────────────────────────────── -->
+    <div class="page active" id="page-home">
+      <div class="overview-tiles" id="home-tiles">
+        <div class="overview-tile">
+          <div class="ot-label">Market</div>
+          <div class="ot-value" id="market-sentiment">—</div>
+        </div>
+        <div class="overview-tile">
+          <div class="ot-label">BTC Dominance</div>
+          <div class="ot-value" id="btc-dom">—</div>
+        </div>
+        <div class="overview-tile">
+          <div class="ot-label">BTC Price</div>
+          <div class="ot-value" id="btc-price">—</div>
+        </div>
+        <div class="overview-tile">
+          <div class="ot-label">24h Change</div>
+          <div class="ot-value" id="market-change">—</div>
+        </div>
+      </div>
+
+      <div class="section-label">Top Movers</div>
+      <div id="home-movers"></div>
+
+      <button class="btn-primary" onclick="navigate('signals')">📈 View Signals</button>
+      <button class="btn-secondary" onclick="navigate('market')">📊 Full Market</button>
+    </div>
+
+    <!-- ─── Signals Page ──────────────────────────────────── -->
+    <div class="page" id="page-signals">
+      <div class="section-label">Select Coin</div>
+      <div class="search-bar">
+        <span>🔍</span>
+        <input type="text" id="coin-search" placeholder="Search coins..." oninput="filterCoins(this.value)" />
+      </div>
+      <div class="tf-tabs" id="tf-tabs">
+        <button class="tf-tab active" onclick="selectTF('15m',this)">15m</button>
+        <button class="tf-tab" onclick="selectTF('1h',this)">1H</button>
+        <button class="tf-tab active" onclick="selectTF('4h',this)">4H</button>
+        <button class="tf-tab" onclick="selectTF('1d',this)">1D</button>
+      </div>
+      <div class="coin-grid" id="coin-grid"></div>
+    </div>
+
+    <!-- ─── Signal Detail Page ───────────────────────────── -->
+    <div class="page" id="page-signal-detail">
+      <button class="btn-secondary" onclick="navigate('signals')" style="margin-bottom:12px">◀ Back to Coins</button>
+      <div id="signal-detail-content"></div>
+    </div>
+
+    <!-- ─── Watchlist Page ────────────────────────────────── -->
+    <div class="page" id="page-watchlist">
+      <div class="section-label">My Watchlist</div>
+      <div id="watchlist-content"></div>
+    </div>
+
+    <!-- ─── Market Page ───────────────────────────────────── -->
+    <div class="page" id="page-market">
+      <div class="section-label">All Halal Coins</div>
+      <div id="market-list"></div>
+    </div>
+
+    <!-- ─── Academy Page ──────────────────────────────────── -->
+    <div class="page" id="page-education">
+      <div class="section-label">Learn Halal Investing</div>
+      <div id="academy-list"></div>
+    </div>
+
+    <!-- ─── Lesson Page ───────────────────────────────────── -->
+    <div class="page" id="page-lesson">
+      <button class="btn-secondary" onclick="navigate('education')" style="margin-bottom:12px">◀ Back to Academy</button>
+      <div class="lesson-content" id="lesson-content"></div>
+    </div>
+
+    <!-- ─── Settings Page ─────────────────────────────────── -->
+    <div class="page" id="page-settings">
+      <div class="section-label">Preferences</div>
+      <div class="setting-row">
+        <div>
+          <div class="setting-label">Default Timeframe</div>
+          <div class="setting-sub" id="tf-setting-label">4H</div>
+        </div>
+        <div style="display:flex;gap:6px">
+          <button class="tf-tab" style="font-size:11px;padding:6px 10px" onclick="setDefaultTF('1h')">1H</button>
+          <button class="tf-tab active" id="tf-4h-btn" onclick="setDefaultTF('4h')">4H</button>
+          <button class="tf-tab" onclick="setDefaultTF('1d')">1D</button>
+        </div>
+      </div>
+      <div class="setting-row">
+        <div>
+          <div class="setting-label">Price Alerts</div>
+          <div class="setting-sub">Signal notifications</div>
+        </div>
+        <div class="toggle on" id="alerts-toggle" onclick="toggleAlerts()"></div>
+      </div>
+      <div class="setting-row">
+        <div>
+          <div class="setting-label">Halal Mode</div>
+          <div class="setting-sub">Always on — spot only</div>
+        </div>
+        <div class="toggle on" style="opacity:0.6"></div>
+      </div>
+      <div style="margin-top:20px;padding:14px;background:var(--bg-card);border-radius:var(--radius-sm);border:1px solid var(--border)">
+        <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;font-weight:600;margin-bottom:8px">Disclaimer</div>
+        <div style="font-size:12px;color:var(--text-secondary);line-height:1.6">Halol Crypto AI provides educational analysis only. This is not financial advice. Always do your own research and consult a qualified scholar regarding halal compliance. Never invest more than you can afford to lose.</div>
+      </div>
+    </div>
+
+  </div><!-- /scroll-area -->
+
+  <!-- Bottom Nav -->
+  <div class="bottom-nav">
+    <button class="nav-item active" id="nav-home" onclick="navigate('home')">
+      <span class="nav-icon">🏠</span><span class="nav-label">Home</span>
+    </button>
+    <button class="nav-item" id="nav-signals" onclick="navigate('signals')">
+      <span class="nav-icon">📈</span><span class="nav-label">Signals</span>
+    </button>
+    <button class="nav-item" id="nav-watchlist" onclick="navigate('watchlist')">
+      <span class="nav-icon">⭐</span><span class="nav-label">Watchlist</span>
+    </button>
+    <button class="nav-item" id="nav-market" onclick="navigate('market')">
+      <span class="nav-icon">📊</span><span class="nav-label">Market</span>
+    </button>
+    <button class="nav-item" id="nav-education" onclick="navigate('education')">
+      <span class="nav-icon">🎓</span><span class="nav-label">Learn</span>
+    </button>
+    <button class="nav-item" id="nav-settings" onclick="navigate('settings')">
+      <span class="nav-icon">⚙️</span><span class="nav-label">Settings</span>
+    </button>
+  </div>
+</div>
+
+<script>
+/* ── Telegram WebApp ──────────────────────────────────────────────────── */
+const tg = window.Telegram?.WebApp;
+if (tg) {
+  tg.ready();
+  tg.expand();
+}
+
+/* ── State ────────────────────────────────────────────────────────────── */
+const state = {
+  currentPage: 'home',
+  selectedTF:  '4h',
+  defaultTF:   '4h',
+  watchlist:   JSON.parse(localStorage.getItem('watchlist') || '["BTC","ETH","BNB"]'),
+  alertsOn:    true,
+  marketData:  [],
+  loadedPages: new Set(),
+};
+
+/* ── Halal Coins ──────────────────────────────────────────────────────── */
+const COINS = [
+  {s:'BTC', n:'Bitcoin'},   {s:'ETH', n:'Ethereum'},  {s:'BNB', n:'BNB'},
+  {s:'SOL', n:'Solana'},    {s:'ADA', n:'Cardano'},    {s:'XRP', n:'XRP'},
+  {s:'DOT', n:'Polkadot'},  {s:'LINK',n:'Chainlink'},  {s:'AVAX',n:'Avalanche'},
+  {s:'MATIC',n:'Polygon'},  {s:'TON', n:'Toncoin'},    {s:'ATOM',n:'Cosmos'},
+  {s:'UNI', n:'Uniswap'},   {s:'LTC', n:'Litecoin'},   {s:'NEAR',n:'NEAR'},
+  {s:'APT', n:'Aptos'},     {s:'ARB', n:'Arbitrum'},   {s:'OP',  n:'Optimism'},
+  {s:'SUI', n:'Sui'},       {s:'INJ', n:'Injective'},  {s:'TIA', n:'Celestia'},
+  {s:'SEI', n:'Sei'},       {s:'FTM', n:'Fantom'},     {s:'ALGO',n:'Algorand'},
+  {s:'VET', n:'VeChain'},
+];
+
+/* ── Navigation ───────────────────────────────────────────────────────── */
+function navigate(page) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  const pageEl = document.getElementById('page-' + page);
+  if (pageEl) pageEl.classList.add('active');
+  const navEl = document.getElementById('nav-' + page);
+  if (navEl) navEl.classList.add('active');
+  state.currentPage = page;
+  document.querySelector('.scroll-area').scrollTop = 0;
+  if (!state.loadedPages.has(page)) {
+    state.loadedPages.add(page);
+    loadPage(page);
+  }
+}
+
+async function loadPage(page) {
+  switch(page) {
+    case 'home':      loadHome(); break;
+    case 'signals':   renderCoinGrid(COINS); break;
+    case 'market':    loadMarket(); break;
+    case 'education': renderAcademy(); break;
+    case 'watchlist': renderWatchlist(); break;
+  }
+}
+
+/* ── Market Data ──────────────────────────────────────────────────────── */
+async function fetchPrice(symbol) {
+  try {
+    const r = await fetch(`https://api.binance.com/api/v3/ticker/24hr?symbol=${symbol}USDT`);
+    const d = await r.json();
+    return {
+      price:  parseFloat(d.lastPrice || 0),
+      change: parseFloat(d.priceChangePercent || 0),
+      vol:    parseFloat(d.quoteVolume || 0),
+    };
+  } catch { return {price:0, change:0, vol:0}; }
+}
+
+async function fetchCandles(symbol, tf='4h', limit=200) {
+  try {
+    const r = await fetch(`https://api.binance.com/api/v3/klines?symbol=${symbol}USDT&interval=${tf}&limit=${limit}`);
+    const d = await r.json();
+    return d.map(k => ({o:+k[1],h:+k[2],l:+k[3],c:+k[4],v:+k[5]}));
+  } catch { return []; }
+}
+
+/* ── Simple Signal Scoring ────────────────────────────────────────────── */
+function calcSignal(candles, price) {
+  if (candles.length < 50) return {score:0,type:'🟡 Wait',rsi:50,trend:'N/A'};
+  const closes = candles.map(c=>c.c);
+  const highs  = candles.map(c=>c.h);
+  const lows   = candles.map(c=>c.l);
+  const vols   = candles.map(c=>c.v);
+  let score = 0;
+
+  // EMA
+  const ema20  = calcEMA(closes,20);
+  const ema50  = calcEMA(closes,50);
+  const ema200 = calcEMA(closes,200);
+  const e20=ema20[ema20.length-1], e50=ema50[ema50.length-1], e200=ema200[ema200.length-1];
+  if(price>e20) score+=8; if(price>e50) score+=8; if(price>e200) score+=9;
+  if(e20>e50) score+=5; if(e50>e200) score+=5;
+
+  // RSI
+  const rsiVal = calcRSI(closes,14);
+  if(rsiVal>=40&&rsiVal<=65) score+=15;
+  else if(rsiVal>=30&&rsiVal<40) score+=10;
+  else if(rsiVal<30) score+=5;
+
+  // MACD
+  const {line,sig} = calcMACD(closes);
+  const ml=line[line.length-1], sl=sig[sig.length-1];
+  if(ml>0) score+=5; if(ml>sl) score+=12;
+
+  // Volume
+  const avgVol = vols.slice(-21,-1).reduce((a,b)=>a+b,0)/20;
+  const rv = vols[vols.length-1]/avgVol;
+  if(rv>=1.5) score+=10; else if(rv>=1) score+=5;
+
+  // Support
+  const minLow = Math.min(...lows.slice(-20));
+  if(price-minLow < price*0.03) score+=10;
+
+  const normalized = Math.min(100, score/87*100);
+  let type = normalized>=75 ? '🟢 Strong Buy' :
+             normalized>=55 ? '🟢 Buy' :
+             normalized>=40 ? '🟡 Wait' : '💰 Profit Taking';
+
+  const trend = (price>e200) ? (price>e50 ? 'Strong Bull' : 'Bull') : 'Bear';
+
+  // Trade plan
+  const avgRange = candles.slice(-14).reduce((a,c)=>a+(c.h-c.l),0)/14;
+  const sl_price = price - avgRange*1.5;
+  const risk     = price - sl_price;
+  const tp1 = price+risk*1.5, tp2=price+risk*2.5, tp3=price+risk*4;
+
+  return {
+    score: Math.round(normalized),
+    type, rsi: Math.round(rsiVal), trend,
+    ema20:e20, ema200,
+    sl: sl_price, tp1, tp2, tp3,
+    rr: (tp1-price)/risk,
+    ml, rv,
+  };
+}
+
+/* ── TA Helpers ───────────────────────────────────────────────────────── */
+function calcEMA(data, period) {
+  const k=2/(period+1); let ema=data.slice(0,period).reduce((a,b)=>a+b)/period;
+  const out=[...Array(period-1).fill(0),ema];
+  for(let i=period;i<data.length;i++){ema=data[i]*k+ema*(1-k);out.push(ema);}
+  return out;
+}
+function calcRSI(data, period=14) {
+  let gains=0,losses=0;
+  for(let i=1;i<=period;i++){const d=data[i]-data[i-1];if(d>0)gains+=d;else losses-=d;}
+  let ag=gains/period,al=losses/period;
+  for(let i=period+1;i<data.length;i++){
+    const d=data[i]-data[i-1];
+    ag=(ag*(period-1)+(d>0?d:0))/period;
+    al=(al*(period-1)+(d<0?-d:0))/period;
+  }
+  return 100-(100/(1+(al===0?100:ag/al)));
+}
+function calcMACD(data,fast=12,slow=26,signal=9) {
+  const ef=calcEMA(data,fast),es=calcEMA(data,slow);
+  const line=ef.map((v,i)=>v-es[i]);
+  const sig=calcEMA(line.slice(slow-1),signal);
+  const pad=Array(slow-1).fill(0);
+  return {line,sig:[...pad,...sig]};
+}
+
+/* ── Formatters ───────────────────────────────────────────────────────── */
+function fmtPrice(p) {
+  if(!p) return 'N/A';
+  if(p>=1000) return '$'+p.toLocaleString('en',{maximumFractionDigits:2});
+  if(p>=1)    return '$'+p.toFixed(4);
+  return '$'+p.toFixed(8);
+}
+function fmtChange(c) {
+  const cls = c>0?'up':c<0?'down':'flat';
+  const sym = c>0?'+':'';
+  return `<span class="${cls}">${sym}${c.toFixed(2)}%</span>`;
+}
+function signalClass(type) {
+  if(type.includes('Strong Buy')) return 'signal-strong-buy';
+  if(type.includes('Buy'))        return 'signal-buy';
+  if(type.includes('Wait'))       return 'signal-wait';
+  return 'signal-profit';
+}
+
+/* ── Home Page ────────────────────────────────────────────────────────── */
+async function loadHome() {
+  // Fetch BTC for quick stats
+  const btcData = await fetchPrice('BTC');
+  document.getElementById('btc-price').textContent = fmtPrice(btcData.price);
+  const chg = btcData.change;
+  document.getElementById('market-change').innerHTML = fmtChange(chg);
+  document.getElementById('market-sentiment').textContent = chg>2?'🚀 Bullish':chg>0?'📈 Up':chg>-2?'📉 Down':'🔴 Bearish';
+  document.getElementById('btc-dom').textContent = '~50%';
+
+  // Top 6 movers
+  const top6 = ['BTC','ETH','BNB','SOL','AVAX','TON'];
+  const moverEl = document.getElementById('home-movers');
+  moverEl.innerHTML = '<div class="loading-state"><div class="spinner"></div><span>Loading prices...</span></div>';
+  const prices = await Promise.all(top6.map(s=>fetchPrice(s)));
+  moverEl.innerHTML = '';
+  top6.forEach((sym,i)=>{
+    const d = prices[i];
+    const coin = COINS.find(c=>c.s===sym)||{s:sym,n:sym};
+    moverEl.innerHTML += `
+      <div class="coin-card" onclick="openCoinSignal('${sym}')">
+        <div class="coin-icon">${sym.slice(0,3)}</div>
+        <div class="coin-info">
+          <div class="coin-name">${sym}</div>
+          <div class="coin-sub">${coin.n}</div>
+        </div>
+        <div class="coin-price-block">
+          <div class="coin-price">${fmtPrice(d.price)}</div>
+          <div class="coin-change">${fmtChange(d.change)}</div>
+        </div>
+      </div>`;
+  });
+}
+
+/* ── Signals Page ─────────────────────────────────────────────────────── */
+let currentTF = '4h';
+function selectTF(tf, btn) {
+  currentTF = tf;
+  document.querySelectorAll('.tf-tab').forEach(b=>b.classList.remove('active'));
+  if(btn) btn.classList.add('active');
+}
+function renderCoinGrid(coins) {
+  const grid = document.getElementById('coin-grid');
+  grid.innerHTML = coins.map(c=>`
+    <div class="coin-grid-item" onclick="openCoinSignal('${c.s}')">
+      <div class="coin-grid-sym">${c.s}</div>
+      <div class="coin-grid-name">${c.n}</div>
+    </div>`).join('');
+}
+function filterCoins(query) {
+  const q = query.toLowerCase();
+  const filtered = COINS.filter(c=>c.s.toLowerCase().includes(q)||c.n.toLowerCase().includes(q));
+  renderCoinGrid(filtered);
+}
+
+/* ── Signal Detail ────────────────────────────────────────────────────── */
+async function openCoinSignal(symbol) {
+  navigate('signal-detail');
+  const el = document.getElementById('signal-detail-content');
+  el.innerHTML = `<div class="loading-state"><div class="spinner"></div><span>Analyzing ${symbol} on ${currentTF.toUpperCase()}...</span></div>`;
+
+  const [candles, priceData] = await Promise.all([
+    fetchCandles(symbol, currentTF, 200),
+    fetchPrice(symbol),
+  ]);
+
+  if(!candles.length) {
+    el.innerHTML = `<div class="loading-state">⚠️ Could not fetch data for ${symbol}.</div>`;
+    return;
+  }
+
+  const price  = priceData.price || candles[candles.length-1].c;
+  const change = priceData.change || 0;
+  const sig    = calcSignal(candles, price);
+  const inWL   = state.watchlist.includes(symbol);
+
+  // Score ring
+  const circ = 2*Math.PI*46;
+  const offset = circ*(1-sig.score/100);
+
+  el.innerHTML = `
+    <div class="signal-hero">
+      <div class="signal-hero-header">
+        <div>
+          <div class="signal-hero-sym">${symbol}</div>
+          <div class="signal-hero-price">${fmtPrice(price)}</div>
+        </div>
+        <span class="signal-badge ${signalClass(sig.type)}">${sig.type}</span>
+      </div>
+      <div class="signal-meta">
+        <span class="meta-pill accent">⏱ ${currentTF.toUpperCase()}</span>
+        <span class="meta-pill">${fmtChange(change)} 24h</span>
+        <span class="meta-pill">📈 ${sig.trend}</span>
+      </div>
+    </div>
+
+    <div class="score-container">
+      <div class="score-ring">
+        <svg viewBox="0 0 110 110" width="110" height="110">
+          <circle class="bg" cx="55" cy="55" r="46"/>
+          <circle class="fg" cx="55" cy="55" r="46"
+            stroke-dasharray="${circ}"
+            stroke-dashoffset="${offset}"/>
+        </svg>
+        <div class="score-text">
+          <div class="score-number">${sig.score}</div>
+          <div class="score-label">Score</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="indicators-grid">
+      <div class="indicator-pill">
+        <div class="ind-label">RSI</div>
+        <div class="ind-value" style="color:${sig.rsi<30?'#ef4444':sig.rsi>70?'#f59e0b':'var(--accent)'}">${sig.rsi}</div>
+      </div>
+      <div class="indicator-pill">
+        <div class="ind-label">Rel. Volume</div>
+        <div class="ind-value" style="color:${sig.rv>=1.5?'var(--accent)':'var(--text-primary)'}">${(sig.rv||0).toFixed(2)}x</div>
+      </div>
+      <div class="indicator-pill">
+        <div class="ind-label">MACD</div>
+        <div class="ind-value" style="color:${(sig.ml||0)>0?'var(--accent)':'var(--red-signal)'">${(sig.ml||0)>0?'▲':'▼'} ${Math.abs(sig.ml||0).toFixed(4)}</div>
+      </div>
+      <div class="indicator-pill">
+        <div class="ind-label">Trend</div>
+        <div class="ind-value" style="font-size:13px">${sig.trend}</div>
+      </div>
+    </div>
+
+    <div class="trade-plan">
+      <div class="trade-plan-header">📋 Trade Plan</div>
+      <div class="tp-row">
+        <span class="tp-label">Entry Price</span>
+        <span class="tp-value tp-entry">${fmtPrice(price)}</span>
+      </div>
+      <div class="tp-row">
+        <span class="tp-label">🛑 Stop Loss</span>
+        <span class="tp-value tp-sl">${fmtPrice(sig.sl)}</span>
+      </div>
+      <div class="tp-row">
+        <span class="tp-label">🎯 Take Profit 1</span>
+        <span class="tp-value tp-1">${fmtPrice(sig.tp1)}</span>
+      </div>
+      <div class="tp-row">
+        <span class="tp-label">🎯 Take Profit 2</span>
+        <span class="tp-value tp-2">${fmtPrice(sig.tp2)}</span>
+      </div>
+      <div class="tp-row">
+        <span class="tp-label">🎯 Take Profit 3</span>
+        <span class="tp-value tp-3">${fmtPrice(sig.tp3)}</span>
+      </div>
+      <div class="tp-row">
+        <span class="tp-label">⚖️ Risk/Reward</span>
+        <span class="tp-value tp-rr">1:${(sig.rr||0).toFixed(2)}</span>
+      </div>
+    </div>
+
+    <button class="btn-secondary" onclick="toggleWatchlist('${symbol}',this)">
+      ${inWL ? '❌ Remove from Watchlist' : '⭐ Add to Watchlist'}
+    </button>
+    <div style="margin-top:10px;font-size:11px;color:var(--text-muted);text-align:center">
+      ⚠️ Educational analysis only. Not financial advice.
+    </div>`;
+}
+
+/* ── Watchlist ────────────────────────────────────────────────────────── */
+function toggleWatchlist(symbol, btn) {
+  if(state.watchlist.includes(symbol)) {
+    state.watchlist = state.watchlist.filter(s=>s!==symbol);
+    if(btn) btn.textContent = '⭐ Add to Watchlist';
+  } else {
+    state.watchlist.push(symbol);
+    if(btn) btn.textContent = '❌ Remove from Watchlist';
+  }
+  localStorage.setItem('watchlist', JSON.stringify(state.watchlist));
+}
+
+async function renderWatchlist() {
+  const el = document.getElementById('watchlist-content');
+  if(!state.watchlist.length) {
+    el.innerHTML = `<div class="empty-state">
+      <div class="empty-icon">⭐</div>
+      <div class="empty-title">No coins yet</div>
+      <div class="empty-sub">Go to Signals and add coins to your watchlist</div>
+    </div>`;
+    return;
+  }
+  el.innerHTML = '<div class="loading-state"><div class="spinner"></div><span>Loading watchlist...</span></div>';
+  const prices = await Promise.all(state.watchlist.map(s=>fetchPrice(s)));
+  el.innerHTML = '';
+  state.watchlist.forEach((sym,i)=>{
+    const d = prices[i];
+    const coin = COINS.find(c=>c.s===sym)||{s:sym,n:sym};
+    el.innerHTML += `
+      <div class="coin-card" onclick="openCoinSignal('${sym}')">
+        <div class="coin-icon">${sym.slice(0,3)}</div>
+        <div class="coin-info">
+          <div class="coin-name">${sym}</div>
+          <div class="coin-sub">${coin.n}</div>
+        </div>
+        <div class="coin-price-block">
+          <div class="coin-price">${fmtPrice(d.price)}</div>
+          <div class="coin-change">${fmtChange(d.change)}</div>
+        </div>
+      </div>`;
+  });
+  el.innerHTML += `<button class="btn-secondary" onclick="navigate('signals')">➕ Add More Coins</button>`;
+}
+
+/* ── Market Page ──────────────────────────────────────────────────────── */
+async function loadMarket() {
+  const el = document.getElementById('market-list');
+  el.innerHTML = '<div class="loading-state"><div class="spinner"></div><span>Loading market data...</span></div>';
+  const prices = await Promise.all(COINS.slice(0,15).map(c=>fetchPrice(c.s)));
+  el.innerHTML = '';
+  COINS.slice(0,15).forEach((coin,i)=>{
+    const d = prices[i];
+    el.innerHTML += `
+      <div class="coin-card" onclick="openCoinSignal('${coin.s}')">
+        <div class="coin-icon">${coin.s.slice(0,3)}</div>
+        <div class="coin-info">
+          <div class="coin-name">${coin.s}</div>
+          <div class="coin-sub">${coin.n}</div>
+        </div>
+        <div class="coin-price-block">
+          <div class="coin-price">${fmtPrice(d.price)}</div>
+          <div class="coin-change">${fmtChange(d.change)}</div>
+        </div>
+      </div>`;
+  });
+}
+
+/* ── Academy ──────────────────────────────────────────────────────────── */
+const ACADEMY_CATS = [
+  {id:'basics',  icon:'₿',  title:'Crypto Basics',       sub:'Bitcoin, Blockchain, Spot Trading'},
+  {id:'ta',      icon:'📈', title:'Technical Analysis',   sub:'Support, Resistance, Chart Patterns'},
+  {id:'indicators',icon:'📊',title:'Indicators',          sub:'RSI, MACD, EMA, Bollinger Bands'},
+  {id:'smc',     icon:'🏦', title:'Smart Money Concepts', sub:'Order Blocks, FVG, BOS, CHoCH'},
+  {id:'risk',    icon:'⚠️', title:'Risk Management',      sub:'Stop Loss, Take Profit, Position Size'},
+  {id:'faq',     icon:'❓', title:'FAQ',                  sub:'Halal questions & common answers'},
+];
+
+const LESSONS_DATA = {
+  basics: [
+    {id:'btc',      title:'What is Bitcoin?',        content:'<b>₿ What is Bitcoin?</b><br><br>Bitcoin (BTC) is the world\'s first decentralized digital currency, created in 2009.<br><br><b>Key Properties:</b><br>• Decentralized — no bank controls it<br>• Limited Supply — only 21 million BTC ever<br>• Peer-to-peer — send anywhere<br>• Transparent — all transactions public<br><br><b>Halal Perspective:</b><br>Spot Bitcoin ownership (buying real BTC) is considered permissible by many scholars as it has real utility and value. Always consult your own scholar.'},
+    {id:'blockchain',title:'What is Blockchain?',    content:'<b>🔗 What is Blockchain?</b><br><br>A blockchain is a distributed ledger maintained by thousands of computers. No single authority controls it.<br><br><b>How it works:</b><br>1. Transaction requested<br>2. Broadcast to network<br>3. Nodes validate it<br>4. Added to a block<br>5. Block added to chain — permanent!'},
+    {id:'spot',     title:'What is Spot Trading?',   content:'<b>🛒 What is Spot Trading?</b><br><br>Buying and <b>owning the actual asset</b> at current price.<br><br><b>Why Spot is Halal:</b><br>✅ You own real assets<br>✅ No borrowed money (no riba)<br>✅ No leverage<br>✅ No short selling<br><br>Halol Crypto AI is <b>spot only</b>.'},
+  ],
+  indicators: [
+    {id:'rsi',   title:'What is RSI?',              content:'<b>📉 RSI (Relative Strength Index)</b><br><br>Measures momentum on 0–100 scale.<br><br>• RSI < 30 → Oversold (buy zone)<br>• RSI 40–65 → Optimal entry zone<br>• RSI > 70 → Overbought (caution)<br><br>Best combined with EMA and volume confirmation.'},
+    {id:'macd',  title:'What is MACD?',             content:'<b>📊 MACD</b><br><br>Shows relationship between EMA(12) and EMA(26).<br><br>🟢 MACD crosses ABOVE signal = Buy signal<br>📊 Histogram growing positive = momentum building<br><br>Works best on 4H and 1D timeframes.'},
+    {id:'ema',   title:'What is EMA?',              content:'<b>📈 EMA (Exponential Moving Average)</b><br><br>Gives more weight to recent prices.<br><br>Bull Alignment: Price > EMA20 > EMA50 > EMA200 ✅<br><br>EMA200 crossing = major long-term signal.'},
+    {id:'atr',   title:'What is ATR?',              content:'<b>📏 ATR (Average True Range)</b><br><br>Measures market volatility.<br><br>Used to set stop losses:<br>Stop Loss = Entry – 1.5× ATR<br><br>High ATR = volatile market = use smaller positions.'},
+    {id:'bb',    title:'What is Bollinger Bands?',  content:'<b>🎯 Bollinger Bands</b><br><br>Three lines: Upper, Middle (SMA), Lower.<br><br>BB Squeeze = volatility compression = breakout coming!<br><br>Near lower band in uptrend = buy opportunity.'},
+  ],
+  smc: [
+    {id:'ob',    title:'What is Order Block?',      content:'<b>🏦 Order Block</b><br><br>Last opposing candle before a strong move. Represents institutional orders.<br><br><b>Bullish OB:</b> Last red candle before strong up-move → price returns to bounce.<br><br>Higher timeframe OBs are more powerful.'},
+    {id:'fvg',   title:'What is Fair Value Gap?',   content:'<b>⚡ Fair Value Gap (FVG)</b><br><br>Price imbalance — area where price moved too fast, leaving a gap.<br><br>Bullish FVG: gap where low of candle 3 > high of candle 1.<br><br>Price tends to return and fill the gap before continuing up.'},
+    {id:'bos',   title:'What is BOS?',              content:'<b>💥 Break of Structure (BOS)</b><br><br>Price breaks beyond a key swing high/low, confirming trend continuation.<br><br>Bullish BOS = breaks above previous swing high → uptrend confirmed ✅'},
+    {id:'choch', title:'What is CHoCH?',            content:'<b>🔄 Change of Character (CHoCH)</b><br><br>Signals potential trend reversal.<br><br>Bullish CHoCH: In downtrend, price suddenly breaks ABOVE a previous swing high → reversal possible.'},
+    {id:'liq',   title:'What is Liquidity Sweep?',  content:'<b>🌊 Liquidity Sweep</b><br><br>Price briefly pierces a key level to trigger stops, then reverses sharply.<br><br>Long wick beyond key level + closes back inside = buy opportunity!'},
+  ],
+  risk: [
+    {id:'sl',    title:'What is Stop Loss?',        content:'<b>🛑 Stop Loss</b><br><br>Pre-set exit to limit losses if market moves against you.<br><br>Halol formula: Entry – 1.5× ATR<br><br>Never trade without a stop loss. Protects your wealth (hifz al-mal).'},
+    {id:'tp',    title:'What is Take Profit?',      content:'<b>💰 Take Profit</b><br><br>Targets to exit and lock in gains.<br><br>Recommended splits:<br>• 40% at TP1<br>• 35% at TP2<br>• 25% let ride to TP3<br><br>After TP1: move stop to breakeven!'},
+    {id:'rr',    title:'What is Risk/Reward?',      content:'<b>⚖️ Risk/Reward Ratio</b><br><br>RRR = (TP – Entry) ÷ (Entry – SL)<br><br>Minimum 1.5:1. Target 2:1 or better.<br><br>With 2:1 RRR, you profit even with only 40% win rate!'},
+    {id:'size',  title:'What is Position Sizing?',  content:'<b>📐 Position Sizing</b><br><br>Never risk more than 1–2% of capital per trade.<br><br>Formula: Position = (Capital × 1%) ÷ Risk per unit<br><br>Even 10 losses = only 10% drawdown. Survival first!'},
+  ],
+  ta: [
+    {id:'sup',   title:'What is Support?',          content:'<b>🟩 Support</b><br><br>Price level where buying prevents further decline — a floor.<br><br>The more times it holds, the stronger it is.<br><br>Bounce from support + volume = confirmation signal.'},
+    {id:'res',   title:'What is Resistance?',       content:'<b>🟥 Resistance</b><br><br>Price ceiling where selling overcomes buying.<br><br>When broken with volume → resistance becomes support.<br>This is the Breakout Retest opportunity!'},
+    {id:'retest',title:'What is Breakout Retest?',  content:'<b>🚀 Breakout Retest</b><br><br>After breaking resistance, price pulls back to test it as new support, then continues up.<br><br>Often gives 1:3+ Risk/Reward with precise entry.'},
+  ],
+  faq: [
+    {id:'halal', title:'Is crypto trading halal?',  content:'<b>☪️ Is Crypto Halal?</b><br><br>✅ Generally Permissible:<br>• Spot trading (buying real assets)<br>• Long-term investing<br><br>❌ Generally Not Permissible:<br>• Futures & derivatives<br>• Leveraged trading (riba)<br>• Short selling<br><br>Halol only does spot analysis. Consult your scholar for personal ruling.'},
+    {id:'acc',   title:'How accurate are signals?', content:'<b>🎯 Signal Accuracy</b><br><br>Signals are analytical tools, not guarantees.<br><br>Strong Buy on 4H: ~60-65% historical win rate with proper RM.<br><br>Always use stop losses. Never risk more than 1-2% per trade.'},
+  ],
+};
+
+function renderAcademy() {
+  const el = document.getElementById('academy-list');
+  el.innerHTML = ACADEMY_CATS.map(cat=>`
+    <div class="academy-cat" onclick="showLessonList('${cat.id}')">
+      <div class="academy-cat-icon">${cat.icon}</div>
+      <div>
+        <div class="academy-cat-title">${cat.title}</div>
+        <div class="academy-cat-sub">${cat.sub}</div>
+      </div>
+    </div>`).join('');
+}
+
+function showLessonList(catId) {
+  const lessons = LESSONS_DATA[catId] || [];
+  const cat = ACADEMY_CATS.find(c=>c.id===catId);
+  const el = document.getElementById('academy-list');
+  el.innerHTML = `
+    <button class="btn-secondary" onclick="renderAcademy()" style="margin-bottom:12px">◀ Back</button>
+    <div class="section-label">${cat?.title}</div>
+    ${lessons.map(l=>`<div class="academy-cat" onclick="showLesson('${catId}','${l.id}')">
+      <div class="academy-cat-icon" style="font-size:16px">📖</div>
+      <div><div class="academy-cat-title">${l.title}</div></div>
+    </div>`).join('')}`;
+}
+
+function showLesson(catId, lessonId) {
+  const lessons = LESSONS_DATA[catId] || [];
+  const lesson = lessons.find(l=>l.id===lessonId);
+  if(!lesson) return;
+  const el = document.getElementById('lesson-content');
+  el.innerHTML = `
+    <div class="lesson-title">${lesson.title}</div>
+    <div style="line-height:1.8;font-size:14px;color:var(--text-primary)">${lesson.content.replace(/\n/g,'<br>')}</div>
+    <br>
+    <button class="btn-secondary" onclick="showLessonList('${catId}')">◀ Back to ${ACADEMY_CATS.find(c=>c.id===catId)?.title}</button>`;
+  navigate('lesson');
+}
+
+/* ── Settings ─────────────────────────────────────────────────────────── */
+function setDefaultTF(tf) {
+  state.defaultTF = tf; currentTF = tf;
+  document.getElementById('tf-setting-label').textContent = tf.toUpperCase();
+}
+function toggleAlerts() {
+  state.alertsOn = !state.alertsOn;
+  document.getElementById('alerts-toggle').classList.toggle('on', state.alertsOn);
+}
+
+/* ── Init ─────────────────────────────────────────────────────────────── */
+function init() {
+  // Set TF tabs — make only 4H active by default
+  document.querySelectorAll('.tf-tab').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.tf-tab').forEach(b=>{if(b.textContent==='4H')b.classList.add('active');});
+  navigate('home');
+}
+
+init();
+</script>
+</body>
+</html>
