@@ -1,0 +1,87 @@
+version: "3.9"
+
+services:
+  bot:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: bozor_narxlari_bot
+    restart: unless-stopped
+    env_file:
+      - .env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./logs:/app/logs
+    networks:
+      - bozor_net
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: bozor_narxlari_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: bozor_narxlari
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-securepassword}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      - bozor_net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d bozor_narxlari"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  redis:
+    image: redis:7-alpine
+    container_name: bozor_narxlari_redis
+    restart: unless-stopped
+    command: redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    networks:
+      - bozor_net
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Run Alembic migrations on startup
+  migrator:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: bozor_narxlari_migrator
+    env_file:
+      - .env
+    command: alembic upgrade head
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - bozor_net
+    restart: "no"
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  bozor_net:
+    driver: bridge
